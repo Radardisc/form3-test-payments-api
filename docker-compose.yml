@@ -1,0 +1,28 @@
+version: '3'
+services:
+  database:
+    image: postgres:9.6
+    ports:
+      - "5432:5432"
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: form3
+      POSTGRES_DB: form3
+      POSTGRES_USER: form3
+  api:
+    tty: true
+    build: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      - database
+    entrypoint: /usr/bin/api
+  test:
+    tty: true
+    build: .
+    depends_on:
+      - database
+    entrypoint: 
+      - go
+      - test
+      - "-v"
