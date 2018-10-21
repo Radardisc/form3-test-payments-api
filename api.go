@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/go-pg/pg"
 	"github.com/gorilla/mux"
 )
 
@@ -12,11 +13,11 @@ type APIResponse struct {
 }
 
 type api struct {
-	dataSource dataSource
+	dataSource *pg.DB
 	router     *mux.Router
 }
 
-func newAPI(dataSource dataSource) *api {
+func newAPI(dataSource *pg.DB) *api {
 	api := &api{}
 	api.router = mux.NewRouter()
 	api.router.HandleFunc("/v1/payments", api.getPayments).Methods(http.MethodGet)
@@ -30,6 +31,12 @@ func (api *api) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (api *api) getPayments(w http.ResponseWriter, r *http.Request) {
 	payments := []Payment{}
+
+	if err := api.dataSource.Model(&payments).Select(); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	data, err := json.Marshal(payments)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)

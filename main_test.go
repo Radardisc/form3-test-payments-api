@@ -42,7 +42,7 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 
-	server = &http.Server{Addr: ":8080", Handler: newAPI(nil)}
+	server = &http.Server{Addr: ":8080", Handler: newAPI(db)}
 	code := m.Run()
 
 	os.Exit(code)
@@ -82,12 +82,16 @@ func TestGetPaymentsWithEmptyTable(t *testing.T) {
 func TestGetPaymentsWithOneExistingPayment(t *testing.T) {
 
 	newID := uuid.NewV1()
+	organisationID := uuid.NewV1()
 
 	// populate table with example payment
 	examplePayment := Payment{
-		ID: newID,
+		ID:             newID,
+		OrganisationID: organisationID,
 	}
-	db.Insert(&examplePayment)
+	if err := db.Insert(&examplePayment); err != nil {
+		t.Fatal(err)
+	}
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/payments", nil)
 	rw := httptest.NewRecorder()
