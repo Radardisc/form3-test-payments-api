@@ -40,16 +40,25 @@ func TestMain(m *testing.M) {
 
 func TestGetPaymentsWithEmptyTable(t *testing.T) {
 
-	req := httptest.NewRequest(http.MethodGet, "/payments", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/payments", nil)
 	rw := httptest.NewRecorder()
 	server.Handler.ServeHTTP(rw, req)
 	if rw.Code != 200 {
 		t.Fatalf("Status code was not 200: %d\n", rw.Code)
 	}
 
-	var payments []Payment
-	err := json.NewDecoder(rw.Body).Decode(&payments)
+	if rw.Header().Get("Content-Type") != "application/json" {
+		t.Fatalf("Content type was not application/json")
+	}
+
+	var response APIResponse
+	err := json.NewDecoder(rw.Body).Decode(&response)
 	if err != nil {
+		t.Fatalf("Failed to decode API response: %s", err)
+	}
+
+	var payments []Payment
+	if err := json.Unmarshal(response.Data, &payments); err != nil {
 		t.Fatalf("Failed to decode response to payments slice: %s", err)
 	}
 
