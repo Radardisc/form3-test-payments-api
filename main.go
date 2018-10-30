@@ -57,6 +57,7 @@ func newAPI(dataSource *pg.DB) *api {
 	api.router.HandleFunc("/v1/payments/{id}", api.getPayment).Methods(http.MethodGet)
 	api.router.HandleFunc("/v1/payments", api.createPayment).Methods(http.MethodPost)
 	api.router.HandleFunc("/v1/payments/{id}", api.updatePayment).Methods(http.MethodPut)
+	api.router.HandleFunc("/v1/payments/{id}", api.deletePayment).Methods(http.MethodDelete)
 	api.dataSource = dataSource
 	return api
 }
@@ -101,6 +102,7 @@ func (api *api) getPayment(w http.ResponseWriter, r *http.Request) {
 	uuid, err := uuid.FromString(id)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
 	payment := Payment{
@@ -152,10 +154,36 @@ func (api *api) createPayment(w http.ResponseWriter, r *http.Request) {
 
 func (api *api) updatePayment(w http.ResponseWriter, r *http.Request) {
 
+	vars := mux.Vars(r)
+	id, ok := vars["id"]
+	if !ok {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	uuid, err := uuid.FromString(id)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	var payment Payment
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&payment); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if payment.ID.String() != uuid.String() {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	existingPayment := Payment{
+		ID: uuid,
+	}
+	if err := api.dataSource.Select(&existingPayment); err != nil {
+		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
@@ -166,4 +194,33 @@ func (api *api) updatePayment(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusCreated)
 	w.Header().Add("Location", fmt.Sprintf("/v1/payments/%s", payment.ID.String()))
+}
+
+func (api *api) deletePayment(w http.ResponseWriter, r *http.Request) {
+
+	vars := mux.Vars(r)
+	id, ok := vars["id"]
+	if !ok {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	uuid, err := uuid.FromString(id)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	payment := Payment{
+		ID: uuid,
+	}
+	if err := api.dataSource.Select(&payment); err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	if err := api.dataSource.Delete(&payment); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 }

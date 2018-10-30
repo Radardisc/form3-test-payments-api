@@ -62,48 +62,12 @@ func emptyDatabase(t *testing.T) {
 	}
 }
 
-func TestGetPaymentsWithEmptyTable(t *testing.T) {
-
-	emptyDatabase(t)
-
-	req := httptest.NewRequest(http.MethodGet, "/v1/payments", nil)
-	rw := httptest.NewRecorder()
-	server.Handler.ServeHTTP(rw, req)
-	if rw.Code != 200 {
-		t.Fatalf("Status code was not 200: %d\n", rw.Code)
-	}
-
-	if rw.Header().Get("Content-Type") != "application/json" {
-		t.Fatalf("Content type was not application/json")
-	}
-
-	var response APIResponse
-	err := json.NewDecoder(rw.Body).Decode(&response)
-	if err != nil {
-		t.Fatalf("Failed to decode API response: %s", err)
-	}
-
-	var payments []Payment
-	if err := json.Unmarshal(response.Data, &payments); err != nil {
-		t.Fatalf("Failed to decode response to payments slice: %s", err)
-	}
-
-	assert.Len(t, payments, 0, "Payments array must be empty when database is empty")
-}
-
-func TestGetPaymentsWithOneExistingPayment(t *testing.T) {
-
-	emptyDatabase(t)
-
-	newID := uuid.NewV1()
-	organisationID := uuid.NewV1()
-
-	// populate table with example payment
-	examplePayment := Payment{
+func createExamplePayment() Payment {
+	return Payment{
 		Type:           "Payment",
-		ID:             newID,
+		ID:             uuid.NewV1(),
 		Version:        0,
-		OrganisationID: organisationID,
+		OrganisationID: uuid.NewV1(),
 		Attributes: Attributes{
 			Amount: "100.00",
 			BeneficiaryParty: BeneficiaryParty{
@@ -164,6 +128,43 @@ func TestGetPaymentsWithOneExistingPayment(t *testing.T) {
 			},
 		},
 	}
+}
+
+func TestGetPaymentsWithEmptyTable(t *testing.T) {
+
+	emptyDatabase(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/payments", nil)
+	rw := httptest.NewRecorder()
+	server.Handler.ServeHTTP(rw, req)
+	if rw.Code != 200 {
+		t.Fatalf("Status code was not 200: %d\n", rw.Code)
+	}
+
+	if rw.Header().Get("Content-Type") != "application/json" {
+		t.Fatalf("Content type was not application/json")
+	}
+
+	var response APIResponse
+	err := json.NewDecoder(rw.Body).Decode(&response)
+	if err != nil {
+		t.Fatalf("Failed to decode API response: %s", err)
+	}
+
+	var payments []Payment
+	if err := json.Unmarshal(response.Data, &payments); err != nil {
+		t.Fatalf("Failed to decode response to payments slice: %s", err)
+	}
+
+	assert.Len(t, payments, 0, "Payments array must be empty when database is empty")
+}
+
+func TestGetPaymentsWithOneExistingPayment(t *testing.T) {
+
+	emptyDatabase(t)
+
+	// populate table with example payment
+	examplePayment := createExamplePayment()
 	if err := db.Insert(&examplePayment); err != nil {
 		t.Fatal(err)
 	}
@@ -200,71 +201,7 @@ func TestGetPaymentsWithMultipleExistingPayments(t *testing.T) {
 
 	// populate table with example payment
 	examplePayments := []Payment{
-		{
-			Type:           "Payment",
-			ID:             uuid.NewV1(),
-			Version:        0,
-			OrganisationID: uuid.NewV1(),
-			Attributes: Attributes{
-				Amount: "100.00",
-				BeneficiaryParty: BeneficiaryParty{
-					DebtorParty: &DebtorParty{
-						SponsorParty: &SponsorParty{
-							AccountNumber: "12345678",
-							BankID:        "203301",
-							BankIDCode:    "GBDSC",
-						},
-						AccountName:       "L Galvin",
-						AccountNumberCode: "IBAN",
-						Name:              "Liam Galvin",
-						Address:           "123 Main Street",
-					},
-					AccountType: 0,
-				},
-				ChargesInformation: ChargesInformation{
-					BearerCode: "SHAR",
-					SenderCharges: []Charge{
-						{
-							Amount:   "0.50",
-							Currency: "GBP",
-						},
-						{
-							Amount:   "0.10",
-							Currency: "USD",
-						},
-					},
-					ReceiverChargesAmount:   "1.00",
-					ReceiverChargesCurrency: "GBP",
-				},
-				Currency: "GBP",
-				DebtorParty: DebtorParty{
-					SponsorParty: &SponsorParty{
-						AccountNumber: "77777777",
-						BankID:        "203301",
-						BankIDCode:    "GBDSC",
-					},
-					AccountName:       "Mangoes Inc",
-					AccountNumberCode: "IBAN",
-					Name:              "Mangoes Incorporated",
-					Address:           "124 Main Street",
-				},
-				EndToEndReference:    "payment for mangoes",
-				NumericReference:     "1012321",
-				PaymentID:            "123456789012345678",
-				PaymentPurpose:       "Paying for goods/services",
-				PaymentScheme:        "FPS",
-				PaymentType:          "Credit",
-				ProcessingDate:       "2017-01-18",
-				Reference:            "Payment for Em's mangoes",
-				SchemePaymentSubType: "InternetBanking",
-				SchemePaymentType:    "ImmediatePayment",
-				SponsorParty: SponsorParty{
-					AccountNumber: "10101010",
-					BankID:        "203302",
-					BankIDCode:    "GBDSC",
-				},
-			},
-		},
+		createExamplePayment(),
 		{
 			Type:           "Payment",
 			ID:             uuid.NewV1(),
@@ -366,71 +303,7 @@ func TestGetSinglePaymentWithOneExistingPayment(t *testing.T) {
 	emptyDatabase(t)
 
 	// populate table with example payment
-	examplePayment := Payment{
-		Type:           "Payment",
-		ID:             uuid.NewV1(),
-		Version:        0,
-		OrganisationID: uuid.NewV1(),
-		Attributes: Attributes{
-			Amount: "100.00",
-			BeneficiaryParty: BeneficiaryParty{
-				DebtorParty: &DebtorParty{
-					SponsorParty: &SponsorParty{
-						AccountNumber: "12345678",
-						BankID:        "203301",
-						BankIDCode:    "GBDSC",
-					},
-					AccountName:       "L Galvin",
-					AccountNumberCode: "IBAN",
-					Name:              "Liam Galvin",
-					Address:           "123 Main Street",
-				},
-				AccountType: 0,
-			},
-			ChargesInformation: ChargesInformation{
-				BearerCode: "SHAR",
-				SenderCharges: []Charge{
-					{
-						Amount:   "0.50",
-						Currency: "GBP",
-					},
-					{
-						Amount:   "0.10",
-						Currency: "USD",
-					},
-				},
-				ReceiverChargesAmount:   "1.00",
-				ReceiverChargesCurrency: "GBP",
-			},
-			Currency: "GBP",
-			DebtorParty: DebtorParty{
-				SponsorParty: &SponsorParty{
-					AccountNumber: "77777777",
-					BankID:        "203301",
-					BankIDCode:    "GBDSC",
-				},
-				AccountName:       "Mangoes Inc",
-				AccountNumberCode: "IBAN",
-				Name:              "Mangoes Incorporated",
-				Address:           "124 Main Street",
-			},
-			EndToEndReference:    "payment for mangoes",
-			NumericReference:     "1012321",
-			PaymentID:            "123456789012345678",
-			PaymentPurpose:       "Paying for goods/services",
-			PaymentScheme:        "FPS",
-			PaymentType:          "Credit",
-			ProcessingDate:       "2017-01-18",
-			Reference:            "Payment for Em's mangoes",
-			SchemePaymentSubType: "InternetBanking",
-			SchemePaymentType:    "ImmediatePayment",
-			SponsorParty: SponsorParty{
-				AccountNumber: "10101010",
-				BankID:        "203302",
-				BankIDCode:    "GBDSC",
-			},
-		},
-	}
+	examplePayment := createExamplePayment()
 	if err := db.Insert(&examplePayment); err != nil {
 		t.Fatal(err)
 	}
@@ -489,71 +362,7 @@ func TestGetSinglePaymentForNonExistingPaymentWhenOtherPaymentExists(t *testing.
 	emptyDatabase(t)
 
 	// populate table with example payment
-	examplePayment := Payment{
-		Type:           "Payment",
-		ID:             uuid.NewV1(),
-		Version:        0,
-		OrganisationID: uuid.NewV1(),
-		Attributes: Attributes{
-			Amount: "100.00",
-			BeneficiaryParty: BeneficiaryParty{
-				DebtorParty: &DebtorParty{
-					SponsorParty: &SponsorParty{
-						AccountNumber: "12345678",
-						BankID:        "203301",
-						BankIDCode:    "GBDSC",
-					},
-					AccountName:       "L Galvin",
-					AccountNumberCode: "IBAN",
-					Name:              "Liam Galvin",
-					Address:           "123 Main Street",
-				},
-				AccountType: 0,
-			},
-			ChargesInformation: ChargesInformation{
-				BearerCode: "SHAR",
-				SenderCharges: []Charge{
-					{
-						Amount:   "0.50",
-						Currency: "GBP",
-					},
-					{
-						Amount:   "0.10",
-						Currency: "USD",
-					},
-				},
-				ReceiverChargesAmount:   "1.00",
-				ReceiverChargesCurrency: "GBP",
-			},
-			Currency: "GBP",
-			DebtorParty: DebtorParty{
-				SponsorParty: &SponsorParty{
-					AccountNumber: "77777777",
-					BankID:        "203301",
-					BankIDCode:    "GBDSC",
-				},
-				AccountName:       "Mangoes Inc",
-				AccountNumberCode: "IBAN",
-				Name:              "Mangoes Incorporated",
-				Address:           "124 Main Street",
-			},
-			EndToEndReference:    "payment for mangoes",
-			NumericReference:     "1012321",
-			PaymentID:            "123456789012345678",
-			PaymentPurpose:       "Paying for goods/services",
-			PaymentScheme:        "FPS",
-			PaymentType:          "Credit",
-			ProcessingDate:       "2017-01-18",
-			Reference:            "Payment for Em's mangoes",
-			SchemePaymentSubType: "InternetBanking",
-			SchemePaymentType:    "ImmediatePayment",
-			SponsorParty: SponsorParty{
-				AccountNumber: "10101010",
-				BankID:        "203302",
-				BankIDCode:    "GBDSC",
-			},
-		},
-	}
+	examplePayment := createExamplePayment()
 	if err := db.Insert(&examplePayment); err != nil {
 		t.Fatal(err)
 	}
@@ -571,71 +380,7 @@ func TestCreateSinglePayment(t *testing.T) {
 	emptyDatabase(t)
 
 	// populate table with example payment
-	examplePayment := Payment{
-		Type:           "Payment",
-		ID:             uuid.NewV1(),
-		Version:        0,
-		OrganisationID: uuid.NewV1(),
-		Attributes: Attributes{
-			Amount: "100.00",
-			BeneficiaryParty: BeneficiaryParty{
-				DebtorParty: &DebtorParty{
-					SponsorParty: &SponsorParty{
-						AccountNumber: "12345678",
-						BankID:        "203301",
-						BankIDCode:    "GBDSC",
-					},
-					AccountName:       "L Galvin",
-					AccountNumberCode: "IBAN",
-					Name:              "Liam Galvin",
-					Address:           "123 Main Street",
-				},
-				AccountType: 0,
-			},
-			ChargesInformation: ChargesInformation{
-				BearerCode: "SHAR",
-				SenderCharges: []Charge{
-					{
-						Amount:   "0.50",
-						Currency: "GBP",
-					},
-					{
-						Amount:   "0.10",
-						Currency: "USD",
-					},
-				},
-				ReceiverChargesAmount:   "1.00",
-				ReceiverChargesCurrency: "GBP",
-			},
-			Currency: "GBP",
-			DebtorParty: DebtorParty{
-				SponsorParty: &SponsorParty{
-					AccountNumber: "77777777",
-					BankID:        "203301",
-					BankIDCode:    "GBDSC",
-				},
-				AccountName:       "Mangoes Inc",
-				AccountNumberCode: "IBAN",
-				Name:              "Mangoes Incorporated",
-				Address:           "124 Main Street",
-			},
-			EndToEndReference:    "payment for mangoes",
-			NumericReference:     "1012321",
-			PaymentID:            "123456789012345678",
-			PaymentPurpose:       "Paying for goods/services",
-			PaymentScheme:        "FPS",
-			PaymentType:          "Credit",
-			ProcessingDate:       "2017-01-18",
-			Reference:            "Payment for Em's mangoes",
-			SchemePaymentSubType: "InternetBanking",
-			SchemePaymentType:    "ImmediatePayment",
-			SponsorParty: SponsorParty{
-				AccountNumber: "10101010",
-				BankID:        "203302",
-				BankIDCode:    "GBDSC",
-			},
-		},
-	}
+	examplePayment := createExamplePayment()
 
 	jsonBytes, err := json.Marshal(examplePayment)
 	require.Nil(t, err)
@@ -677,71 +422,7 @@ func TestUpdatePayment(t *testing.T) {
 	emptyDatabase(t)
 
 	// populate table with example payment
-	examplePayment := Payment{
-		Type:           "Payment",
-		ID:             uuid.NewV1(),
-		Version:        0,
-		OrganisationID: uuid.NewV1(),
-		Attributes: Attributes{
-			Amount: "100.00",
-			BeneficiaryParty: BeneficiaryParty{
-				DebtorParty: &DebtorParty{
-					SponsorParty: &SponsorParty{
-						AccountNumber: "12345678",
-						BankID:        "203301",
-						BankIDCode:    "GBDSC",
-					},
-					AccountName:       "L Galvin",
-					AccountNumberCode: "IBAN",
-					Name:              "Liam Galvin",
-					Address:           "123 Main Street",
-				},
-				AccountType: 0,
-			},
-			ChargesInformation: ChargesInformation{
-				BearerCode: "SHAR",
-				SenderCharges: []Charge{
-					{
-						Amount:   "0.50",
-						Currency: "GBP",
-					},
-					{
-						Amount:   "0.10",
-						Currency: "USD",
-					},
-				},
-				ReceiverChargesAmount:   "1.00",
-				ReceiverChargesCurrency: "GBP",
-			},
-			Currency: "GBP",
-			DebtorParty: DebtorParty{
-				SponsorParty: &SponsorParty{
-					AccountNumber: "77777777",
-					BankID:        "203301",
-					BankIDCode:    "GBDSC",
-				},
-				AccountName:       "Mangoes Inc",
-				AccountNumberCode: "IBAN",
-				Name:              "Mangoes Incorporated",
-				Address:           "124 Main Street",
-			},
-			EndToEndReference:    "payment for mangoes",
-			NumericReference:     "1012321",
-			PaymentID:            "123456789012345678",
-			PaymentPurpose:       "Paying for goods/services",
-			PaymentScheme:        "FPS",
-			PaymentType:          "Credit",
-			ProcessingDate:       "2017-01-18",
-			Reference:            "Payment for Em's mangoes",
-			SchemePaymentSubType: "InternetBanking",
-			SchemePaymentType:    "ImmediatePayment",
-			SponsorParty: SponsorParty{
-				AccountNumber: "10101010",
-				BankID:        "203302",
-				BankIDCode:    "GBDSC",
-			},
-		},
-	}
+	examplePayment := createExamplePayment()
 	if err := db.Insert(&examplePayment); err != nil {
 		t.Fatal(err)
 	}
@@ -767,4 +448,102 @@ func TestUpdatePayment(t *testing.T) {
 	require.Nil(t, err)
 
 	assert.EqualValues(t, examplePayment, actualPayment)
+}
+
+func TestUpdateSinglePaymentWithIDThatDoesNotMatchURL(t *testing.T) {
+
+	emptyDatabase(t)
+
+	// populate table with example payment
+	examplePayment := createExamplePayment()
+	if err := db.Insert(&examplePayment); err != nil {
+		t.Fatal(err)
+	}
+
+	jsonBytes, err := json.Marshal(examplePayment)
+	require.Nil(t, err)
+
+	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/v1/payments/%s", uuid.NewV1().String()), bytes.NewBuffer(jsonBytes))
+	req.Header.Set("Content-Type", "application/json")
+	rw := httptest.NewRecorder()
+	server.Handler.ServeHTTP(rw, req)
+	if rw.Code != 400 {
+		t.Fatalf("Status code was not 400: %d\n", rw.Code)
+	}
+}
+
+func TestUpdateNonExistentPayment(t *testing.T) {
+
+	emptyDatabase(t)
+
+	// populate table with example payment
+	examplePayment := createExamplePayment()
+
+	jsonBytes, err := json.Marshal(examplePayment)
+	require.Nil(t, err)
+
+	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/v1/payments/%s", examplePayment.ID.String()), bytes.NewBuffer(jsonBytes))
+	req.Header.Set("Content-Type", "application/json")
+	rw := httptest.NewRecorder()
+	server.Handler.ServeHTTP(rw, req)
+	if rw.Code != 404 {
+		t.Fatalf("Status code was not 404: %d\n", rw.Code)
+	}
+}
+
+func TestUpdateSinglePaymentWithInvalidJSON(t *testing.T) {
+
+	emptyDatabase(t)
+
+	// populate table with example payment
+	examplePayment := createExamplePayment()
+	if err := db.Insert(&examplePayment); err != nil {
+		t.Fatal(err)
+	}
+
+	jsonBytes := []byte("{ bad json }")
+	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/v1/payments/%s", examplePayment.ID.String()), bytes.NewBuffer(jsonBytes))
+	req.Header.Set("Content-Type", "application/json")
+	rw := httptest.NewRecorder()
+	server.Handler.ServeHTTP(rw, req)
+	if rw.Code != 400 {
+		t.Fatalf("Status code was not 400: %d\n", rw.Code)
+	}
+}
+
+func TestDeletePayment(t *testing.T) {
+
+	emptyDatabase(t)
+
+	// populate table with example payment
+	examplePayment := createExamplePayment()
+	if err := db.Insert(&examplePayment); err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/v1/payments/%s", examplePayment.ID), nil)
+	rw := httptest.NewRecorder()
+	server.Handler.ServeHTTP(rw, req)
+	if rw.Code != 200 {
+		t.Fatalf("Status code was not 200: %d\n", rw.Code)
+	}
+
+	actualPayment := Payment{
+		ID: examplePayment.ID,
+	}
+	err := db.Select(&actualPayment)
+	assert.Equal(t, pg.ErrNoRows, err)
+}
+
+func TestDeleteNonExistingPayment(t *testing.T) {
+
+	emptyDatabase(t)
+
+	req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/v1/payments/%s", uuid.NewV1().String()), nil)
+	rw := httptest.NewRecorder()
+	server.Handler.ServeHTTP(rw, req)
+	if rw.Code != 404 {
+		t.Fatalf("Status code was not 404: %d\n", rw.Code)
+	}
+
 }
