@@ -1,7 +1,9 @@
 # Payments REST API Exercise (Form3)
 [![CircleCI](https://circleci.com/gh/liamg/form3-test-payments-api.svg?style=svg)](https://circleci.com/gh/liamg/form3-test-payments-api)
 
-intro + link to design.pdf
+This is a very basic REST API built in Golang with a PostgreSQL database. It is containerised and can be run locally using docker compose (see below).
+
+The basic design is [summarised here](design.pdf).
 
 ## Requirements
 
