@@ -156,6 +156,8 @@ func TestGetPaymentsWithEmptyTable(t *testing.T) {
 		t.Fatalf("Failed to decode response to payments slice: %s", err)
 	}
 
+	assert.EqualValues(t, []Link{Link{Rel: "self", Href: "/v1/payments"}}, response.Links)
+
 	assert.Len(t, payments, 0, "Payments array must be empty when database is empty")
 }
 
@@ -193,6 +195,8 @@ func TestGetPaymentsWithOneExistingPayment(t *testing.T) {
 
 	require.Len(t, payments, 1, "Payments array must contain one payment when database has one payment")
 	assert.EqualValues(t, examplePayment, payments[0])
+
+	assert.EqualValues(t, []Link{Link{Rel: "self", Href: "/v1/payments"}}, response.Links)
 }
 
 func TestGetPaymentsWithMultipleExistingPayments(t *testing.T) {
@@ -296,6 +300,8 @@ func TestGetPaymentsWithMultipleExistingPayments(t *testing.T) {
 
 	require.Len(t, payments, 2, "Payments array must contain two payments when database has two payments")
 	assert.EqualValues(t, examplePayments, payments)
+
+	assert.EqualValues(t, []Link{Link{Rel: "self", Href: "/v1/payments"}}, response.Links)
 }
 
 func TestGetSinglePaymentWithOneExistingPayment(t *testing.T) {
@@ -331,6 +337,8 @@ func TestGetSinglePaymentWithOneExistingPayment(t *testing.T) {
 	}
 
 	assert.EqualValues(t, examplePayment, payment)
+
+	assert.EqualValues(t, []Link{Link{Rel: "self", Href: fmt.Sprintf("/v1/payments/%s", examplePayment.ID.String())}}, response.Links)
 }
 
 func TestGetSinglePaymentForNonExistingPayment(t *testing.T) {

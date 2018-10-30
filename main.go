@@ -42,7 +42,13 @@ func connectToDatabase(db *pg.DB) {
 }
 
 type APIResponse struct {
-	Data json.RawMessage `json:"data"` // @todo add errors
+	Data  json.RawMessage `json:"data"` // @todo add errors
+	Links []Link          `json:"links"`
+}
+
+type Link struct {
+	Rel  string `json:"rel"`
+	Href string `json:"href"`
 }
 
 type api struct {
@@ -80,7 +86,7 @@ func (api *api) getPayments(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response, err := json.Marshal(APIResponse{Data: data})
+	response, err := json.Marshal(APIResponse{Data: data, Links: []Link{Link{Rel: "self", Href: "/v1/payments"}}})
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -124,7 +130,7 @@ func (api *api) getPayment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response, err := json.Marshal(APIResponse{Data: data})
+	response, err := json.Marshal(APIResponse{Data: data, Links: []Link{Link{Rel: "self", Href: fmt.Sprintf("/v1/payments/%s", payment.ID.String())}}})
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
