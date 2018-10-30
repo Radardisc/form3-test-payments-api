@@ -15,6 +15,17 @@ func main() {
 		Addr:     "database:5432",
 	})
 
+	connectToDatabase(db)
+
+	if err := provisionDatabase(db); err != nil {
+		panic(err)
+	}
+
+	server := &http.Server{Addr: ":8080", Handler: newAPI(nil)}
+	panic(server.ListenAndServe())
+}
+
+func connectToDatabase(db *pg.DB) {
 	// keep trying until database is available
 	for {
 		_, err := db.Exec("SELECT 123;")
@@ -24,7 +35,4 @@ func main() {
 		}
 		break
 	}
-
-	server := &http.Server{Addr: ":8080", Handler: newAPI(nil)}
-	panic(server.ListenAndServe())
 }

@@ -11,6 +11,15 @@ intro + link to design.pdf
 
 ## Running Tests
 
-## Running the Service
+```
+./run.sh tests
+```
+
+## Running the API Service
+
+
+```
+./run.sh api
+```
 
 ## Examples
