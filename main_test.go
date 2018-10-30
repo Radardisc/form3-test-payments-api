@@ -429,6 +429,30 @@ func TestCreateSinglePayment(t *testing.T) {
 	assert.EqualValues(t, examplePayment, actualPayment)
 }
 
+func TestCreateSinglePaymentThatAlreadyExists(t *testing.T) {
+
+	emptyDatabase(t)
+
+	// populate table with example payment
+	examplePayment := createExamplePayment()
+
+	jsonBytes, err := json.Marshal(examplePayment)
+	require.Nil(t, err)
+
+	req := httptest.NewRequest(http.MethodPost, "/v1/payments", bytes.NewBuffer(jsonBytes))
+	req.Header.Set("Content-Type", "application/json")
+	rw := httptest.NewRecorder()
+	server.Handler.ServeHTTP(rw, req)
+	if rw.Code != 201 {
+		t.Fatalf("Status code was not 201: %d\n", rw.Code)
+	}
+	retry := httptest.NewRecorder()
+	server.Handler.ServeHTTP(retry, req)
+	if retry.Code != 400 {
+		t.Fatalf("Status code was not 400: %d\n", retry.Code)
+	}
+}
+
 func TestCreateSinglePaymentWithInvalidJSON(t *testing.T) {
 
 	emptyDatabase(t)
