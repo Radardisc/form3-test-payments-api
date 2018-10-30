@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -20,6 +21,9 @@ var server *http.Server
 var db *pg.DB
 
 func TestMain(m *testing.M) {
+
+	// connect to the database, create the required tables and run the API server to test against
+
 	db = pg.Connect(&pg.Options{
 		User:     "form3",
 		Password: "form3",
@@ -37,6 +41,8 @@ func TestMain(m *testing.M) {
 }
 
 func emptyDatabase(t *testing.T) {
+
+	// remove all rows from all of the tables
 
 	models := []interface{}{
 		&Payment{},
@@ -558,4 +564,207 @@ func TestGetSinglePaymentForNonExistingPaymentWhenOtherPaymentExists(t *testing.
 	if rw.Code != 404 {
 		t.Fatalf("Status code was not 404: %d\n", rw.Code)
 	}
+}
+
+func TestCreateSinglePayment(t *testing.T) {
+
+	emptyDatabase(t)
+
+	// populate table with example payment
+	examplePayment := Payment{
+		Type:           "Payment",
+		ID:             uuid.NewV1(),
+		Version:        0,
+		OrganisationID: uuid.NewV1(),
+		Attributes: Attributes{
+			Amount: "100.00",
+			BeneficiaryParty: BeneficiaryParty{
+				DebtorParty: &DebtorParty{
+					SponsorParty: &SponsorParty{
+						AccountNumber: "12345678",
+						BankID:        "203301",
+						BankIDCode:    "GBDSC",
+					},
+					AccountName:       "L Galvin",
+					AccountNumberCode: "IBAN",
+					Name:              "Liam Galvin",
+					Address:           "123 Main Street",
+				},
+				AccountType: 0,
+			},
+			ChargesInformation: ChargesInformation{
+				BearerCode: "SHAR",
+				SenderCharges: []Charge{
+					{
+						Amount:   "0.50",
+						Currency: "GBP",
+					},
+					{
+						Amount:   "0.10",
+						Currency: "USD",
+					},
+				},
+				ReceiverChargesAmount:   "1.00",
+				ReceiverChargesCurrency: "GBP",
+			},
+			Currency: "GBP",
+			DebtorParty: DebtorParty{
+				SponsorParty: &SponsorParty{
+					AccountNumber: "77777777",
+					BankID:        "203301",
+					BankIDCode:    "GBDSC",
+				},
+				AccountName:       "Mangoes Inc",
+				AccountNumberCode: "IBAN",
+				Name:              "Mangoes Incorporated",
+				Address:           "124 Main Street",
+			},
+			EndToEndReference:    "payment for mangoes",
+			NumericReference:     "1012321",
+			PaymentID:            "123456789012345678",
+			PaymentPurpose:       "Paying for goods/services",
+			PaymentScheme:        "FPS",
+			PaymentType:          "Credit",
+			ProcessingDate:       "2017-01-18",
+			Reference:            "Payment for Em's mangoes",
+			SchemePaymentSubType: "InternetBanking",
+			SchemePaymentType:    "ImmediatePayment",
+			SponsorParty: SponsorParty{
+				AccountNumber: "10101010",
+				BankID:        "203302",
+				BankIDCode:    "GBDSC",
+			},
+		},
+	}
+
+	jsonBytes, err := json.Marshal(examplePayment)
+	require.Nil(t, err)
+
+	req := httptest.NewRequest(http.MethodPost, "/v1/payments", bytes.NewBuffer(jsonBytes))
+	req.Header.Set("Content-Type", "application/json")
+	rw := httptest.NewRecorder()
+	server.Handler.ServeHTTP(rw, req)
+	if rw.Code != 201 {
+		t.Fatalf("Status code was not 201: %d\n", rw.Code)
+	}
+	assert.Equal(t, fmt.Sprintf("/v1/payments/%s", examplePayment.ID.String()), rw.Header().Get("Location"))
+
+	actualPayment := Payment{
+		ID: examplePayment.ID,
+	}
+	err = db.Select(&actualPayment)
+	require.Nil(t, err)
+
+	assert.EqualValues(t, examplePayment, actualPayment)
+}
+
+func TestCreateSinglePaymentWithInvalidJSON(t *testing.T) {
+
+	emptyDatabase(t)
+
+	jsonBytes := []byte("{ bad json }")
+	req := httptest.NewRequest(http.MethodPost, "/v1/payments", bytes.NewBuffer(jsonBytes))
+	req.Header.Set("Content-Type", "application/json")
+	rw := httptest.NewRecorder()
+	server.Handler.ServeHTTP(rw, req)
+	if rw.Code != 400 {
+		t.Fatalf("Status code was not 400: %d\n", rw.Code)
+	}
+}
+
+func TestUpdatePayment(t *testing.T) {
+
+	emptyDatabase(t)
+
+	// populate table with example payment
+	examplePayment := Payment{
+		Type:           "Payment",
+		ID:             uuid.NewV1(),
+		Version:        0,
+		OrganisationID: uuid.NewV1(),
+		Attributes: Attributes{
+			Amount: "100.00",
+			BeneficiaryParty: BeneficiaryParty{
+				DebtorParty: &DebtorParty{
+					SponsorParty: &SponsorParty{
+						AccountNumber: "12345678",
+						BankID:        "203301",
+						BankIDCode:    "GBDSC",
+					},
+					AccountName:       "L Galvin",
+					AccountNumberCode: "IBAN",
+					Name:              "Liam Galvin",
+					Address:           "123 Main Street",
+				},
+				AccountType: 0,
+			},
+			ChargesInformation: ChargesInformation{
+				BearerCode: "SHAR",
+				SenderCharges: []Charge{
+					{
+						Amount:   "0.50",
+						Currency: "GBP",
+					},
+					{
+						Amount:   "0.10",
+						Currency: "USD",
+					},
+				},
+				ReceiverChargesAmount:   "1.00",
+				ReceiverChargesCurrency: "GBP",
+			},
+			Currency: "GBP",
+			DebtorParty: DebtorParty{
+				SponsorParty: &SponsorParty{
+					AccountNumber: "77777777",
+					BankID:        "203301",
+					BankIDCode:    "GBDSC",
+				},
+				AccountName:       "Mangoes Inc",
+				AccountNumberCode: "IBAN",
+				Name:              "Mangoes Incorporated",
+				Address:           "124 Main Street",
+			},
+			EndToEndReference:    "payment for mangoes",
+			NumericReference:     "1012321",
+			PaymentID:            "123456789012345678",
+			PaymentPurpose:       "Paying for goods/services",
+			PaymentScheme:        "FPS",
+			PaymentType:          "Credit",
+			ProcessingDate:       "2017-01-18",
+			Reference:            "Payment for Em's mangoes",
+			SchemePaymentSubType: "InternetBanking",
+			SchemePaymentType:    "ImmediatePayment",
+			SponsorParty: SponsorParty{
+				AccountNumber: "10101010",
+				BankID:        "203302",
+				BankIDCode:    "GBDSC",
+			},
+		},
+	}
+	if err := db.Insert(&examplePayment); err != nil {
+		t.Fatal(err)
+	}
+
+	examplePayment.Attributes.BeneficiaryParty.Name = "John Smith"
+
+	jsonBytes, err := json.Marshal(examplePayment)
+	require.Nil(t, err)
+
+	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/v1/payments/%s", examplePayment.ID), bytes.NewBuffer(jsonBytes))
+	req.Header.Set("Content-Type", "application/json")
+	rw := httptest.NewRecorder()
+	server.Handler.ServeHTTP(rw, req)
+	if rw.Code != 201 {
+		t.Fatalf("Status code was not 201: %d\n", rw.Code)
+	}
+	assert.Equal(t, fmt.Sprintf("/v1/payments/%s", examplePayment.ID.String()), rw.Header().Get("Location"))
+
+	actualPayment := Payment{
+		ID: examplePayment.ID,
+	}
+	err = db.Select(&actualPayment)
+	require.Nil(t, err)
+
+	assert.EqualValues(t, examplePayment, actualPayment)
 }
