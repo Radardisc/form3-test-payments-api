@@ -16,7 +16,7 @@ func main() {
 	db := pg.Connect(&pg.Options{
 		User:     "form3",
 		Password: "form3",
-		Addr:     "database:5432",
+		Addr:     "database:5432", // @todo add to config?
 	})
 
 	connectToDatabase(db)
@@ -42,7 +42,7 @@ func connectToDatabase(db *pg.DB) {
 }
 
 type APIResponse struct {
-	Data json.RawMessage `json:"data"`
+	Data json.RawMessage `json:"data"` // @todo add errors
 }
 
 type api struct {
