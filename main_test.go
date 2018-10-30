@@ -351,6 +351,12 @@ func TestGetSinglePaymentForNonExistingPayment(t *testing.T) {
 	if rw.Code != 404 {
 		t.Fatalf("Status code was not 404: %d\n", rw.Code)
 	}
+	var response APIResponse
+	err := json.NewDecoder(rw.Body).Decode(&response)
+	if err != nil {
+		t.Fatalf("Failed to decode API response: %s", err)
+	}
+	assert.EqualValues(t, []string{"Payment not found"}, response.Errors)
 }
 
 func TestGetSinglePaymentForInvalidUUID(t *testing.T) {
@@ -363,6 +369,12 @@ func TestGetSinglePaymentForInvalidUUID(t *testing.T) {
 	if rw.Code != 400 {
 		t.Fatalf("Status code was not 400: %d\n", rw.Code)
 	}
+	var response APIResponse
+	err := json.NewDecoder(rw.Body).Decode(&response)
+	if err != nil {
+		t.Fatalf("Failed to decode API response: %s", err)
+	}
+	assert.EqualValues(t, []string{"Invalid UUID"}, response.Errors)
 }
 
 func TestGetSinglePaymentForNonExistingPaymentWhenOtherPaymentExists(t *testing.T) {
@@ -381,6 +393,12 @@ func TestGetSinglePaymentForNonExistingPaymentWhenOtherPaymentExists(t *testing.
 	if rw.Code != 404 {
 		t.Fatalf("Status code was not 404: %d\n", rw.Code)
 	}
+	var response APIResponse
+	err := json.NewDecoder(rw.Body).Decode(&response)
+	if err != nil {
+		t.Fatalf("Failed to decode API response: %s", err)
+	}
+	assert.EqualValues(t, []string{"Payment not found"}, response.Errors)
 }
 
 func TestCreateSinglePayment(t *testing.T) {
@@ -423,6 +441,12 @@ func TestCreateSinglePaymentWithInvalidJSON(t *testing.T) {
 	if rw.Code != 400 {
 		t.Fatalf("Status code was not 400: %d\n", rw.Code)
 	}
+	var response APIResponse
+	err := json.NewDecoder(rw.Body).Decode(&response)
+	if err != nil {
+		t.Fatalf("Failed to decode API response: %s", err)
+	}
+	assert.EqualValues(t, []string{"Invalid JSON"}, response.Errors)
 }
 
 func TestUpdatePayment(t *testing.T) {
@@ -478,6 +502,11 @@ func TestUpdateSinglePaymentWithIDThatDoesNotMatchURL(t *testing.T) {
 	if rw.Code != 400 {
 		t.Fatalf("Status code was not 400: %d\n", rw.Code)
 	}
+	var response APIResponse
+	if err := json.NewDecoder(rw.Body).Decode(&response); err != nil {
+		t.Fatalf("Failed to decode API response: %s", err)
+	}
+	assert.EqualValues(t, []string{"Mismatching IDs"}, response.Errors)
 }
 
 func TestUpdateNonExistentPayment(t *testing.T) {
@@ -497,6 +526,11 @@ func TestUpdateNonExistentPayment(t *testing.T) {
 	if rw.Code != 404 {
 		t.Fatalf("Status code was not 404: %d\n", rw.Code)
 	}
+	var response APIResponse
+	if err := json.NewDecoder(rw.Body).Decode(&response); err != nil {
+		t.Fatalf("Failed to decode API response: %s", err)
+	}
+	assert.EqualValues(t, []string{"Payment not found"}, response.Errors)
 }
 
 func TestUpdateSinglePaymentWithInvalidJSON(t *testing.T) {
@@ -517,6 +551,12 @@ func TestUpdateSinglePaymentWithInvalidJSON(t *testing.T) {
 	if rw.Code != 400 {
 		t.Fatalf("Status code was not 400: %d\n", rw.Code)
 	}
+	var response APIResponse
+	err := json.NewDecoder(rw.Body).Decode(&response)
+	if err != nil {
+		t.Fatalf("Failed to decode API response: %s", err)
+	}
+	assert.EqualValues(t, []string{"Invalid JSON"}, response.Errors)
 }
 
 func TestDeletePayment(t *testing.T) {
@@ -553,5 +593,11 @@ func TestDeleteNonExistingPayment(t *testing.T) {
 	if rw.Code != 404 {
 		t.Fatalf("Status code was not 404: %d\n", rw.Code)
 	}
+	var response APIResponse
+	err := json.NewDecoder(rw.Body).Decode(&response)
+	if err != nil {
+		t.Fatalf("Failed to decode API response: %s", err)
+	}
+	assert.EqualValues(t, []string{"Payment not found"}, response.Errors)
 
 }

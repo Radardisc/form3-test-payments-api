@@ -16,7 +16,7 @@ func main() {
 	db := pg.Connect(&pg.Options{
 		User:     "form3",
 		Password: "form3",
-		Addr:     "database:5432", // @todo add to config?
+		Addr:     "database:5432",
 	})
 
 	connectToDatabase(db)
@@ -42,8 +42,9 @@ func connectToDatabase(db *pg.DB) {
 }
 
 type APIResponse struct {
-	Data  json.RawMessage `json:"data"` // @todo add errors
-	Links []Link          `json:"links"`
+	Data   json.RawMessage `json:"data,omitempty"`
+	Links  []Link          `json:"links,omitempty"`
+	Errors []string        `json:"errors,omitempty"`
 }
 
 type Link struct {
@@ -100,14 +101,19 @@ func (api *api) getPayment(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 	id, ok := vars["id"]
-	if !ok {
-		w.WriteHeader(http.StatusNotFound)
+	if !ok { // this should not be possible as muxer will only route requests with an ID
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	uuid, err := uuid.FromString(id)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		if response, err := json.Marshal(APIResponse{Errors: []string{"Invalid UUID"}}); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write(response)
+		}
 		return
 	}
 
@@ -117,7 +123,12 @@ func (api *api) getPayment(w http.ResponseWriter, r *http.Request) {
 
 	if err := api.dataSource.Select(&payment); err != nil {
 		if err == pg.ErrNoRows {
-			w.WriteHeader(http.StatusNotFound)
+			if response, err := json.Marshal(APIResponse{Errors: []string{"Payment not found"}}); err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+			} else {
+				w.WriteHeader(http.StatusNotFound)
+				w.Write(response)
+			}
 			return
 		}
 		w.WriteHeader(http.StatusInternalServerError)
@@ -145,7 +156,12 @@ func (api *api) createPayment(w http.ResponseWriter, r *http.Request) {
 	var payment Payment
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&payment); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		if response, err := json.Marshal(APIResponse{Errors: []string{"Invalid JSON"}}); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write(response)
+		}
 		return
 	}
 
@@ -163,25 +179,45 @@ func (api *api) updatePayment(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, ok := vars["id"]
 	if !ok {
-		w.WriteHeader(http.StatusNotFound)
+		if response, err := json.Marshal(APIResponse{Errors: []string{"Payment not found"}}); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write(response)
+		}
 		return
 	}
 
 	uuid, err := uuid.FromString(id)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		if response, err := json.Marshal(APIResponse{Errors: []string{"Invalid UUID"}}); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write(response)
+		}
 		return
 	}
 
 	var payment Payment
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&payment); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		if response, err := json.Marshal(APIResponse{Errors: []string{"Invalid JSON"}}); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write(response)
+		}
 		return
 	}
 
 	if payment.ID.String() != uuid.String() {
-		w.WriteHeader(http.StatusBadRequest)
+		if response, err := json.Marshal(APIResponse{Errors: []string{"Mismatching IDs"}}); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write(response)
+		}
 		return
 	}
 
@@ -189,7 +225,12 @@ func (api *api) updatePayment(w http.ResponseWriter, r *http.Request) {
 		ID: uuid,
 	}
 	if err := api.dataSource.Select(&existingPayment); err != nil {
-		w.WriteHeader(http.StatusNotFound)
+		if response, err := json.Marshal(APIResponse{Errors: []string{"Payment not found"}}); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write(response)
+		}
 		return
 	}
 
@@ -207,13 +248,18 @@ func (api *api) deletePayment(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, ok := vars["id"]
 	if !ok {
-		w.WriteHeader(http.StatusNotFound)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	uuid, err := uuid.FromString(id)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		if response, err := json.Marshal(APIResponse{Errors: []string{"Invalid UUID"}}); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write(response)
+		}
 		return
 	}
 
@@ -221,7 +267,12 @@ func (api *api) deletePayment(w http.ResponseWriter, r *http.Request) {
 		ID: uuid,
 	}
 	if err := api.dataSource.Select(&payment); err != nil {
-		w.WriteHeader(http.StatusNotFound)
+		if response, err := json.Marshal(APIResponse{Errors: []string{"Payment not found"}}); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write(response)
+		}
 		return
 	}
 
